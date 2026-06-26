@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8">
   <title>スマホハンディ</title>
-  <script type="text/javascript" src="https://gc.kis.v2.scr.kaspersky-labs.com/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=u5t0-xKKDNkyv1sUktApw-uKVEb-etSWkD6jnaSS-lkyPr2xCdRSLMshVGRwXIUg9qQCorpSPbDg68_25d88-GO78VC9s8Y2cx9VzOg8SAPJcQKDJoRugkRA0Vn8pzydlqKSr5ayTDpUnkAjX2ocnPPtFSCSwZ2I8lyOJIHG0Sn96Um1TBQu_Yvcm6nmCaZN3u6_x_dBjmuSgQdU7YrdQZ4wofvixwGvy2Fh2lYjWnEiX-RYLYwB3IIdlbScdqwe9CtpGKmCQffLPidQjs6E5pjBbbXRwbgZjOlJ-VfOQDSB4dWMZ-JZBD8FHFl-_y1lopDXqb4Yvp8Zr_tman6Iig" charset="UTF-8"></script><style>
+  <!-- build: no-session-token-v1 -->
+  <style>
     body {
       font-family: sans-serif; margin: 0; padding: 0; background: #f9f9f9;
       display: flex; flex-direction: column; align-items: center;
@@ -351,11 +352,10 @@
   </div>
 
   <script>
-
     const API_URL = 'https://script.google.com/macros/s/AKfycbxl-rQl4EMMzKhTB-ZeMzAO72RH8FoSBXkyEgfHWZpPpJBEPTt_g1Z4jWiBspzvxSST/exec';
 
     const ENTRY_URL = 'https://script.google.com/a/macros/ecodesign-labo.jp/s/AKfycbzrsH5D8jvKS983UjvefktdAzKDBujEWUj3PIW8GATr5O1tMC8zdrDb6tZSGbPZEQ0/exec';
-    
+
     const TOKEN_STORAGE_KEY = 'handy_auth_token';
     let authToken = '';
     let loginUserName = '';
@@ -385,22 +385,18 @@
       const hashParams = new URLSearchParams(location.hash.replace(/^#/, ''));
       const tokenFromHash = hashParams.get('token');
 
-      if (tokenFromHash) {
-        authToken = tokenFromHash;
-        sessionStorage.setItem(TOKEN_STORAGE_KEY, authToken);
-
-        // URL上にtokenを残さない。
-        history.replaceState(null, '', location.pathname + location.search);
-        return;
+      // 直接GitHub Pagesを開いた場合は、登録用GASへ通信せず即エラーにする。
+      // sessionStorageの古いtokenを自動再利用すると、スマホでbootstrap待ちが発生して表示が遅くなるため使わない。
+      if (!tokenFromHash) {
+        sessionStorage.removeItem(TOKEN_STORAGE_KEY);
+        throw new Error('認証情報がありません。入口GASから開いてください。');
       }
 
-      const tokenFromSession = sessionStorage.getItem(TOKEN_STORAGE_KEY);
-      if (tokenFromSession) {
-        authToken = tokenFromSession;
-        return;
-      }
+      authToken = tokenFromHash;
+      sessionStorage.setItem(TOKEN_STORAGE_KEY, authToken);
 
-      throw new Error('認証情報がありません。入口GASから開いてください。');
+      // URL上にtokenを残さない。
+      history.replaceState(null, '', location.pathname + location.search);
     }
 
     function redirectToEntry() {
