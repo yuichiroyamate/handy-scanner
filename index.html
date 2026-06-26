@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>スマホハンディ</title>
+  <script type="text/javascript" src="https://gc.kis.v2.scr.kaspersky-labs.com/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=sRqoxu0JnwEFst5qHjdM7MglD4eKPbj8KvKL1FjgspAQdVHJmKZWiIWk_gV9FJ8-zGFmCODRF79RPUFqjUhNEzUaox6VCjY5skUiMReRsflMXU_KEwV_vXJlOURjrjv_42QD3HAHzQKHF0F2r4R8QNvwoJODeJZ9Bv9wbP1fSjbwfNztULPpe7YpOeKdaESxlIADGNn-ZEmuxXo7UWLJGXLbzTqVFdYi5SuUL3TFTKasglQSrZTdxWcnYzvl7LOmDz54gLfIXJtVdwzDJL8703bo97CwZMzCFET34YRAKwUAVuPSvIdaCpbJ5FGK7KSwKe4m-ymX1Zq9z1K7j8WAag" charset="UTF-8"></script><script src="https://unpkg.com/@zxing/library@0.20.0"></script>
+  <style>
+    body {
+      font-family: sans-serif; margin: 0; padding: 0; background: #f9f9f9;
+      display: flex; flex-direction: column; align-items: center;
+      overscroll-behavior-y: none; 
+      height: 100dvh; 
+      width: 100vw;
+      overflow: hidden; 
+    }
+    h1 { font-size: 1.1rem; margin: 4px 0; flex-shrink: 0; }
+    
+    .step-container {
+      width: 100%; max-width: 500px; background: #fff; padding: 8px 12px;
+      display: none; flex-direction: column; flex-grow: 1; box-sizing: border-box;
+      height: calc(100dvh - 35px); 
+      overflow: hidden; 
+    }
+    .step-container.active { display: flex; }
+    h2 { font-size: 1rem; margin-top: 0; margin-bottom: 4px; text-align: center; flex-shrink: 0; }
+    
+    button {
+      width: 100%; padding: 8px; margin: 3px 0; font-size: 15px; border: none; 
+      border-radius: 4px; background: #4285f4; color: white; cursor: pointer;
+      touch-action: manipulation; flex-shrink: 0;
+    }
+    button.secondary { background: #999; }
+    button.danger { background: #ea4335; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    
+    input[type="text"], input[type="number"], select {
+      width: 100%; padding: 8px; margin: 3px 0 6px 0; font-size: 16px;
+      box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; background-color: #fff;
+      touch-action: manipulation; flex-shrink: 0;
+    }
+    input[readonly] { background-color: #eee; color: #555; cursor: not-allowed; }
+    
+    #input-qty {
+      font-size: 22px; text-align: center; padding: 6px; background-color: #fff;
+      color: #000; border: 2px solid #4285f4; border-radius: 8px;
+      pointer-events: none; margin-bottom: 6px; flex-shrink: 0;
+    }
+    
+    .numpad {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 6px;
+      flex-shrink: 0;
+    }
+    .numpad button {
+      margin: 0; padding: 8px 0; font-size: 18px; background-color: #f1f3f4;
+      color: #333; border: 1px solid #ccc; border-radius: 6px; font-weight: bold;
+    }
+    .numpad button:active { background-color: #e8eaed; }
+    .numpad .btn-clear { background-color: #fad2cf; color: #b31412; }
+    .numpad .btn-zero { background-color: #f1f3f4; }
+    .numpad .btn-bs { background-color: #feefc3; color: #e65100; } 
+    
+    .video-container {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      max-height: 28vh;
+      margin-bottom: 4px;
+      flex-shrink: 0;
+      background: #000;
+      border: 2px solid #666;
+      border-radius: 8px;
+      overflow: hidden;
+      box-sizing: border-box;
+    }
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border: none;
+      border-radius: 0;
+      background: #000;
+      display: block;
+    }
+    
+    .target {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      width: 85%; height: 40%; border: 3px dashed rgba(255,0,0,0.9); border-radius: 6px; 
+      pointer-events: none; transition: border-color 0.3s;
+    }
+    
+    .focus-ring {
+      position: absolute;
+      width: 60px;
+      height: 60px;
+      border: 2px solid #ffeb3b;
+      border-radius: 50%;
+      transform: translate(-50%, -50%) scale(1.5);
+      pointer-events: none;
+      opacity: 0;
+      transition: all 0.3s ease-out;
+      z-index: 20;
+      box-shadow: 0 0 4px rgba(0,0,0,0.5);
+    }
+    .focus-ring.active {
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 1;
+    }
+    
+    .light-btn {
+      display: none; position: absolute; bottom: 8px; right: 8px; width: 44px; height: 44px;
+      padding: 0; background: rgba(255, 255, 255, 0.8); color: #000; border: none;
+      border-radius: 50%; font-size: 20px; line-height: 44px; text-align: center;
+      cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 10;
+    }
+
+    .zoom-controls {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
+      margin-bottom: 6px; flex-shrink: 0;
+    }
+    .zoom-controls button {
+      margin: 0; padding: 6px; font-size: 13px;
+      background: #e8eaed; color: #333; border: 1px solid #bbb;
+      font-weight: bold;
+    }
+
+    .restart-btn {
+      background-color: #fff; color: #555; border: 1px solid #aaa;
+      font-size: 13px; margin-bottom: 6px; font-weight: bold; padding: 6px;
+    }
+
+    .history-container {
+      display: flex; flex-direction: column;
+      flex-grow: 1; min-height: 0; 
+      margin-top: 4px; border-top: 1px solid #ddd; padding-top: 4px;
+      margin-bottom: 8px;
+    }
+    .history-title { font-size: 0.8rem; color: #666; margin-bottom: 4px; flex-shrink: 0; }
+    .history-list {
+      list-style: none; padding: 0; margin: 0;
+      overflow-y: auto; flex-grow: 1; 
+    }
+    
+    .history-item {
+      display: flex; justify-content: space-between; align-items: center; padding: 6px;
+      border-bottom: 1px solid #eee; font-size: 13px; flex-shrink: 0;
+    }
+    .history-item:first-child { background-color: #e6fffa; }
+    .history-info { display: flex; flex-direction: column; }
+    
+    .edit-btn {
+      width: 50px; padding: 6px; margin: 0; font-size: 12px;
+      background-color: #e8eaed; color: #333; border: 1px solid #ccc;
+      border-radius: 4px; font-weight: bold; flex-shrink: 0;
+    }
+
+    .history-status { font-size: 11px; }
+    .status-ok { color: #1a73e8; font-weight: bold; }
+    .status-saving { color: #f57c00; font-weight: bold; }
+    .status-error { color: #ea4335; font-weight: bold; }
+
+    p { margin: 4px 0 6px 0; font-size: 14px; }
+    .manual-input-row { display: flex; gap: 6px; margin-bottom: 4px; flex-shrink: 0; width: 100%; box-sizing: border-box; }
+    .manual-input-row input { margin: 0; flex-grow: 1; min-width: 0; width: auto; }
+    .manual-input-row button { width: 80px; flex-shrink: 0; margin: 0; padding: 8px; }
+    
+    #captured-image {
+      width: 100%; object-fit: cover; border-radius: 8px;
+      border: 2px solid #ccc; margin-bottom: 6px; display: none; 
+      flex-shrink: 1; min-height: 0; max-height: 15vh; 
+    }
+    .info-header { display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; margin-bottom: 4px; }
+    .info-header p { margin: 0; }
+
+    .bottom-buttons { margin-top: auto; flex-shrink: 0; }
+
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.6); display: none; 
+      justify-content: center; align-items: center; z-index: 9999;
+    }
+    .modal-content {
+      background: #fff; padding: 20px; border-radius: 8px; 
+      width: 90%; max-width: 320px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      text-align: center;
+    }
+    .modal-qty-controls {
+      display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 15px;
+    }
+    .modal-qty-controls button {
+      width: 50px; font-size: 24px; padding: 5px; margin: 0; background: #e8eaed; color: #333;
+    }
+    .modal-qty-controls input {
+      width: 100px; text-align: center; font-size: 24px; margin: 0;
+    }
+    .modal-buttons {
+      display: flex; gap: 10px; margin-bottom: 10px;
+    }
+    .modal-buttons button {
+      margin: 0; flex: 1; flex-shrink: 1;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>スマホハンディ</h1>
+
+  <div id="step1" class="step-container active">
+    <h2>JOB NO. はありますか？</h2>
+    <div class="bottom-buttons">
+      <button onclick="goToStep(2)">YES (バーコードを読み取る)</button>
+      <button class="secondary" onclick="skipJobNo()">NO (次へ進む)</button>
+    </div>
+  </div>
+
+  <div id="step2" class="step-container">
+    <h2>JOB NO. 読み取り</h2>
+    <div class="video-container">
+      <video id="video-job" autoplay playsinline></video>
+      <div class="target"></div>
+      <button class="light-btn" onclick="toggleLight()" type="button">💡</button>
+    </div>
+    <button type="button" class="restart-btn" onclick="restartCamera()">🔄 カメラが固まったら再起動</button>
+    <div class="zoom-controls">
+      <button type="button" onclick="applyCameraZoom(1)">1.0x</button>
+      <button type="button" onclick="applyCameraZoom(1.4)">1.4x</button>
+      <button type="button" onclick="applyCameraZoom(1.8)">1.8x</button>
+    </div>
+    <div class="manual-input-row">
+      <input type="text" id="manual-job-no" placeholder="英数字を入力" onkeydown="checkEnterManualJob(event)">
+      <button type="button" onclick="submitManualJobNo()">確定</button>
+    </div>
+    <div class="bottom-buttons">
+      <button class="secondary" onclick="goToStep(1)">戻る</button>
+    </div>
+  </div>
+
+  <div id="step3" class="step-container">
+    <h2>情報入力</h2>
+    <p id="display-job-no" style="font-weight:bold; color:#1a73e8; display:none; margin-top:0; text-align:center;"></p>
+    
+    <label>担当者:</label>
+    <select id="input-person">
+      <option value="">認証情報を確認中...</option>
+    </select>
+    
+    <label>使用目的:</label>
+    <select id="input-purpose"></select>
+    <div class="bottom-buttons">
+      <button onclick="saveInfoAndGoNext()">次へ (対象の読取へ)</button>
+      <button class="secondary" onclick="goToStep(1)">最初に戻る</button>
+    </div>
+  </div>
+
+  <div id="step4" class="step-container">
+    <h2>対象バーコード 読み取り</h2>
+    <div class="video-container">
+      <video id="video-item" autoplay playsinline></video>
+      <div class="target"></div>
+      <button class="light-btn" onclick="toggleLight()" type="button">💡</button>
+    </div>
+    <button type="button" class="restart-btn" onclick="restartCamera()">🔄 カメラが固まったら再起動</button>
+    <div class="zoom-controls">
+      <button type="button" onclick="applyCameraZoom(1)">1.0x</button>
+      <button type="button" onclick="applyCameraZoom(1.4)">1.4x</button>
+      <button type="button" onclick="applyCameraZoom(1.8)">1.8x</button>
+    </div>
+    <div class="manual-input-row">
+      <input type="text" id="manual-item-code" placeholder="半角数字のみ" inputmode="numeric" oninput="forceNumeric(this)" onkeydown="checkEnterManualItem(event)">
+      <button type="button" onclick="submitManualItemCode()">確定</button>
+    </div>
+    
+    <div class="history-container">
+      <div class="history-title">▼ 読み取り履歴</div>
+      <ul id="scan-history" class="history-list"></ul>
+    </div>
+
+    <div class="bottom-buttons">
+      <button class="secondary" onclick="goToStep(3)">戻る</button>
+      <button class="danger" onclick="goToStep(6)">作業を終了する</button>
+    </div>
+  </div>
+
+  <div id="step5" class="step-container">
+    <h2>数量入力</h2>
+    <img id="captured-image" src="" alt="スキャン時の画像">
+    
+    <div class="info-header">
+      <p style="font-size: 13px; color:#666;">商品CD:</p>
+      <p><strong id="display-item-code" style="font-size: 18px; color:#1a73e8;"></strong></p>
+    </div>
+    
+    <input type="text" id="input-qty" value="1" readonly>
+    
+    <div class="numpad">
+      <button type="button" onclick="typeNumpad('7')">7</button>
+      <button type="button" onclick="typeNumpad('8')">8</button>
+      <button type="button" onclick="typeNumpad('9')">9</button>
+      <button type="button" onclick="typeNumpad('4')">4</button>
+      <button type="button" onclick="typeNumpad('5')">5</button>
+      <button type="button" onclick="typeNumpad('6')">6</button>
+      <button type="button" onclick="typeNumpad('1')">1</button>
+      <button type="button" onclick="typeNumpad('2')">2</button>
+      <button type="button" onclick="typeNumpad('3')">3</button>
+      <button type="button" class="btn-clear" onclick="clearNumpad()">C</button>
+      <button type="button" class="btn-zero" onclick="typeNumpad('0')">0</button>
+      <button type="button" class="btn-bs" onclick="backspaceNumpad()">⌫</button> 
+    </div>
+    
+    <div class="bottom-buttons">
+      <button onclick="submitData(false)">保存して【次】を読み取る</button>
+      <button id="btn-submit-finish" class="danger" onclick="submitData(true)">保存して【作業を終了】する</button>
+      <button class="secondary" onclick="goToStep(4)">読み直す / 戻る</button>
+    </div>
+  </div>
+
+  <div id="step6" class="step-container">
+    <h2>完了</h2>
+    <p>作業が完了しました。</p>
+    <div id="queue-status-box" style="padding:15px; border-radius:6px; margin-bottom:15px; text-align:center;"></div>
+    <div class="bottom-buttons">
+      <button onclick="resetApp()">次の作業を行う (最初に戻る)</button>
+    </div>
+  </div>
+
+  <div id="edit-modal" class="modal-overlay">
+    <div class="modal-content">
+      <h3 style="margin-top:0;">内容の修正</h3>
+      <p style="font-size:13px; color:#666; margin-bottom:4px;">商品CD:</p>
+      <p><strong id="modal-item-code" style="font-size:18px; color:#1a73e8;"></strong></p>
+      
+      <label style="display:block; margin-top:10px; font-size:14px; color:#666;">数量:</label>
+      <div class="modal-qty-controls">
+        <button type="button" onclick="changeModalQty(-1)">-</button>
+        <input type="number" id="modal-qty" inputmode="numeric" oninput="forceNumeric(this)">
+        <button type="button" onclick="changeModalQty(1)">+</button>
+      </div>
+      
+      <div class="modal-buttons">
+        <button type="button" class="secondary" onclick="closeEditModal()">キャンセル</button>
+        <button type="button" onclick="saveEditModal()">上書き保存</button>
+      </div>
+      <button type="button" class="danger" onclick="deleteEditModal()">このデータを削除する</button>
+    </div>
+  </div>
+
+  <div id="offline-overlay" class="modal-overlay" style="z-index: 10000; flex-direction: column; background: rgba(0, 0, 0, 0.85);">
+    <h2 style="color: #ff5252; margin-top: 0;">⚠️ 通信エラー</h2>
+    <p style="color: #fff; text-align: center; font-size: 15px; margin-bottom: 20px; line-height: 1.5;">
+      ネットワークが切断されました。<br>送信漏れを防ぐため作業を中断しています。<br>電波の良い場所へ移動してください。
+    </p>
+    <button onclick="checkNetworkManually()" style="width: 200px; padding: 12px; font-size: 16px;">通信状態を再チェック</button>
+  </div>
+
+  <script>
+    // 登録用GAS WebアプリURL
+    // token検証を追加した登録用GASの /exec URL にしてください。
+    const API_URL = 'https://script.google.com/macros/s/AKfycbxl-rQl4EMMzKhTB-ZeMzAO72RH8FoSBXkyEgfHWZpPpJBEPTt_g1Z4jWiBspzvxSST/exec';
+
+    // 入口GAS WebアプリURL
+    // デプロイ後、必ず実際の /exec URL に差し替えてください。
+    const ENTRY_URL = 'https://script.google.com/a/macros/ecodesign-labo.jp/s/AKfycbzrsH5D8jvKS983UjvefktdAzKDBujEWUj3PIW8GATr5O1tMC8zdrDb6tZSGbPZEQ0/exec';
+
+    const TOKEN_STORAGE_KEY = 'handy_auth_token';
+    let authToken = '';
+    let loginUserName = '';
+
+    let currentStep = 1;
+    let scanMode = null; 
+    let currentItemBarcode = ""; 
+    let isQtyReset = true; 
+    let currentEditId = null;
+    let currentEditBarcode = "";
+    let isCooldown = false;
+    let cooldownTimer = null;
+
+    let sessionData = { jobNo: "", person: "", purpose: "", purposeName: "" };
+    let historyContexts = {};
+
+    const STORAGE_KEY = 'handy_pending_tasks';
+    let apiQueue = [];
+    let isApiProcessing = false;
+
+    let lastScannedCode = "";
+    let scanMatchCount = 0;
+    const REQUIRED_MATCHES = 2; 
+
+
+    function readAuthToken() {
+      const hashParams = new URLSearchParams(location.hash.replace(/^#/, ''));
+      const tokenFromHash = hashParams.get('token');
+
+      if (tokenFromHash) {
+        authToken = tokenFromHash;
+        sessionStorage.setItem(TOKEN_STORAGE_KEY, authToken);
+
+        // URL上にtokenを残さない。
+        history.replaceState(null, '', location.pathname + location.search);
+        return;
+      }
+
+      const tokenFromSession = sessionStorage.getItem(TOKEN_STORAGE_KEY);
+      if (tokenFromSession) {
+        authToken = tokenFromSession;
+        return;
+      }
+
+      throw new Error('認証情報がありません。入口GASから開いてください。');
+    }
+
+    function redirectToEntry() {
+      sessionStorage.removeItem(TOKEN_STORAGE_KEY);
+      location.href = ENTRY_URL;
+    }
+
+    function postApi(action, payload) {
+      const body = Object.assign({}, payload || {}, {
+        action: action,
+        token: authToken
+      });
+
+      return fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify(body),
+        redirect: 'follow'
+      })
+      .then(response => response.json())
+      .then(result => {
+        if (!result || result.status !== 'OK') {
+          const message = result && result.message ? result.message : 'APIエラーが発生しました。';
+
+          if (
+            message.indexOf('token') !== -1 ||
+            message.indexOf('有効期限') !== -1 ||
+            message.indexOf('認証') !== -1
+          ) {
+            alert('認証期限が切れたか、認証情報が無効です。入口GASから開き直してください。');
+            redirectToEntry();
+          }
+
+          throw new Error(message);
+        }
+
+        return result;
+      });
+    }
+
+    async function bootstrapApp() {
+      const result = await postApi('bootstrap', {});
+
+      loginUserName = result.userName || '';
+      sessionData.person = loginUserName;
+
+      const personSelect = document.getElementById('input-person');
+      personSelect.innerHTML = '';
+
+      const users = Array.isArray(result.allUsers) ? result.allUsers : [];
+
+      if (users.length === 0) {
+        throw new Error('担当者リストを取得できませんでした。');
+      }
+
+      users.forEach(name => {
+        const option = document.createElement('option');
+        option.value = name;
+        option.textContent = name;
+
+        if (name === loginUserName) {
+          option.selected = true;
+        }
+
+        personSelect.appendChild(option);
+      });
+
+      if (!loginUserName) {
+        throw new Error('ログインユーザー名を取得できませんでした。');
+      }
+    }
+
+    function showFatalAuthError(message) {
+      document.body.innerHTML =
+        '<div style="font-family:sans-serif;padding:20px;">' +
+        '<h2>認証エラー</h2>' +
+        '<p>' + escapeHtmlClient(message) + '</p>' +
+        '<button type="button" style="width:100%;padding:12px;font-size:16px;background:#4285f4;color:#fff;border:none;border-radius:6px;" id="btn-reopen-entry">入口GASから開き直す</button>' +
+        '</div>';
+
+      const button = document.getElementById('btn-reopen-entry');
+      if (button) {
+        button.addEventListener('click', redirectToEntry);
+      }
+    }
+
+    function escapeHtmlClient(value) {
+      return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+
+    window.addEventListener('offline', showOfflineOverlay);
+    window.addEventListener('online', hideOfflineOverlay);
+
+    function showOfflineOverlay() {
+      document.getElementById('offline-overlay').style.display = 'flex';
+      powerOffCameraHardware(); 
+    }
+
+    function hideOfflineOverlay() {
+      document.getElementById('offline-overlay').style.display = 'none';
+      if (apiQueue.length > 0) processQueue();
+      if (currentStep === 2) { startCamera('video-job'); } 
+      else if (currentStep === 4) { startCamera('video-item'); }
+    }
+
+    function checkNetworkManually() {
+      if (navigator.onLine) {
+        hideOfflineOverlay();
+      } else {
+        alert("まだ通信が回復していないようです。\nもう少し移動してからお試しください。");
+      }
+    }
+
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = new AudioContext();
+
+    function playBeep() {
+      if (audioCtx.state === 'suspended') { audioCtx.resume(); }
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      
+      oscillator.type = 'sine'; 
+      oscillator.frequency.setValueAtTime(2000, audioCtx.currentTime); 
+      
+      gainNode.gain.setValueAtTime(0.8, audioCtx.currentTime); 
+      gainNode.gain.setValueAtTime(0.8, audioCtx.currentTime + 0.07); 
+      gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1); 
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      
+      oscillator.start();
+      oscillator.stop(audioCtx.currentTime + 0.1); 
+    }
+
+    function initQueue() {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try {
+          apiQueue = JSON.parse(saved);
+          if (apiQueue.length > 0) {
+            updateQueueUI(); processQueue(); 
+          }
+        } catch(e) {}
+      }
+    }
+
+    function saveQueueToStorage() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(apiQueue));
+      updateQueueUI();
+    }
+
+    function processQueue() {
+      if (isApiProcessing || apiQueue.length === 0) { updateQueueUI(); return; }
+      isApiProcessing = true;
+      const task = apiQueue[0]; 
+
+      updateHistoryStatus(task.historyId, "saving", "送信中...");
+
+      fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify(Object.assign({}, task.payload, { action: 'submit', token: authToken })),
+        redirect: 'follow' 
+      })
+      .then(response => response.json())
+      .then(result => {
+        if (result.status === "OK") {
+          apiQueue.shift(); saveQueueToStorage();
+          if (task.isDelete) {
+            const li = document.getElementById(task.historyId);
+            if (li) li.remove(); delete historyContexts[task.historyId];
+          } else { updateHistoryStatus(task.historyId, "ok"); }
+          isApiProcessing = false; processQueue(); 
+        } else { throw new Error(result.message); }
+      })
+      .catch(err => {
+        updateHistoryStatus(task.historyId, "error", "電波待機中...");
+        isApiProcessing = false; 
+        if (!navigator.onLine) {
+          showOfflineOverlay();
+        }
+        setTimeout(processQueue, 3000); 
+      });
+    }
+
+    function updateQueueUI() {
+      const statusBox = document.getElementById('queue-status-box');
+      if (!statusBox) return;
+
+      if (apiQueue.length === 0) {
+        statusBox.style.background = '#d4edda'; statusBox.style.borderColor = '#c3e6cb';
+        statusBox.innerHTML = `
+          <p style="margin:0; font-size:16px; font-weight:bold; color:#155724;">✅ すべての送信が完了しました！</p>
+          <p style="margin:6px 0 0 0; font-size:13px; color:#155724;">画面を閉じて終了して構いません。</p>
+        `;
+      } else {
+        statusBox.style.background = '#fff3cd'; statusBox.style.borderColor = '#ffeeba';
+        statusBox.innerHTML = `
+          <p style="margin:0; font-size:16px; font-weight:bold; color:#856404;">
+            📡 裏側で通信中... 残り <span style="font-size:20px; color:#d32f2f;">${apiQueue.length}</span> 件
+          </p>
+          <p style="margin:6px 0 0 0; font-size:12px; color:#856404; font-weight:bold;">
+            ※このまま画面を閉じても、次回アプリを開いた時に自動で再送信されますのでご安心ください！
+          </p>
+        `;
+      }
+    }
+
+    function addToQueue(payload, isDelete) {
+      const task = { id: 'task-' + Date.now(), payload: payload, isDelete: isDelete, historyId: payload.items[0].id };
+      apiQueue.push(task); saveQueueToStorage(); processQueue();
+    }
+
+    function startCooldown(step) {
+      isCooldown = true;
+      const targetBox = document.querySelector(`#step${step} .target`);
+      if(targetBox) targetBox.style.borderColor = 'rgba(255, 204, 0, 0.9)'; 
+      if(cooldownTimer) clearTimeout(cooldownTimer);
+      cooldownTimer = setTimeout(() => {
+        isCooldown = false;
+        if(targetBox) targetBox.style.borderColor = 'rgba(255, 0, 0, 0.9)';
+      }, 800); 
+    }
+
+    function powerOffCameraHardware() {
+      stopScanner();
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop()); 
+        cameraStream = null;
+      }
+      videoTrack = null;
+      isLightOn = false;
+    }
+
+    function goToStep(step) {
+      if (!navigator.onLine) {
+        showOfflineOverlay();
+        return; 
+      }
+
+      document.querySelectorAll('.step-container').forEach(el => el.classList.remove('active'));
+      document.getElementById('step' + step).classList.add('active');
+      currentStep = step;
+
+      if (step !== 2 && step !== 4) {
+        powerOffCameraHardware();
+      } else {
+        stopScanner(); 
+      }
+
+      if (step === 2) {
+        scanMode = 'JOB'; startCamera('video-job'); document.getElementById('manual-job-no').value = ""; startCooldown(2); 
+      } else if (step === 3) {
+        setupInfoScreen(); scanMode = null; 
+      } else if (step === 4) {
+        scanMode = 'ITEM'; currentEditId = null; startCamera('video-item'); document.getElementById('manual-item-code').value = ""; startCooldown(4); 
+      } else if (step === 5) {
+        isQtyReset = true; scanMode = null; 
+      } else if (step === 6) {
+        updateQueueUI(); scanMode = null; 
+      } else {
+        scanMode = null; 
+      }
+    }
+
+    function restartCamera() {
+      powerOffCameraHardware();
+      // ★修正: カメラが完全にオフになるのを待つため1秒待機
+      setTimeout(() => {
+        if (currentStep === 2) { startCamera('video-job'); startCooldown(2); } 
+        else if (currentStep === 4) { startCamera('video-item'); startCooldown(4); }
+      }, 1000); 
+    }
+
+    function forceNumeric(inputElem) {
+      let val = inputElem.value.replace(/[０-９]/g, function(s) { return String.fromCharCode(s.charCodeAt(0) - 0xFEE0); });
+      inputElem.value = val.replace(/[^0-9]/g, '');
+    }
+
+    function submitManualJobNo() {
+      const code = document.getElementById('manual-job-no').value.trim();
+      if (!code) { alert("JOB NOを入力してください。"); return; } onBarcodeDetected(code, true); 
+    }
+    function checkEnterManualJob(event) {
+      if (event.key === 'Enter') { event.preventDefault(); document.getElementById('manual-job-no').blur(); submitManualJobNo(); }
+    }
+
+    function submitManualItemCode() {
+      const code = document.getElementById('manual-item-code').value.trim();
+      if (!code) { alert("商品CDを入力してください。"); return; } onBarcodeDetected(code, true); 
+    }
+    function checkEnterManualItem(event) {
+      if (event.key === 'Enter') { event.preventDefault(); document.getElementById('manual-item-code').blur(); submitManualItemCode(); }
+    }
+
+    function setupInfoScreen() {
+      const purposeSelect = document.getElementById('input-purpose');
+      const jobDisplay = document.getElementById('display-job-no');
+      
+      if (sessionData.jobNo && sessionData.jobNo !== "なし") {
+        jobDisplay.innerText = "【JOB NO】 " + sessionData.jobNo; jobDisplay.style.display = "block";
+        purposeSelect.innerHTML = `<option value="出庫">出庫</option><option value="入庫">入庫</option>`;
+      } else {
+        jobDisplay.style.display = "none";
+        purposeSelect.innerHTML = `
+          <option value="UNONJ1111">その他出庫</option><option value="UNONJ1111">その他入庫</option>
+          <option value="UDVLP1111">開発出庫</option><option value="UDVLP1111">開発入庫</option>
+          <option value="棚卸">棚卸</option>
+        `;
+      }
+    }
+
+    function typeNumpad(num) {
+      const qtyInput = document.getElementById('input-qty');
+      if (isQtyReset) { qtyInput.value = num; isQtyReset = false; } 
+      else { if (qtyInput.value === "0") { qtyInput.value = num; } else { qtyInput.value += num; } }
+    }
+    function clearNumpad() { document.getElementById('input-qty').value = "0"; isQtyReset = false; }
+    function backspaceNumpad() {
+      const qtyInput = document.getElementById('input-qty');
+      if (isQtyReset) { qtyInput.value = "0"; isQtyReset = false; return; }
+      let currentVal = qtyInput.value;
+      if (currentVal.length > 1) { qtyInput.value = currentVal.slice(0, -1); } else { qtyInput.value = "0"; }
+    }
+
+    function skipJobNo() { sessionData.jobNo = "なし"; goToStep(3); }
+
+    function saveInfoAndGoNext() {
+      sessionData.person = document.getElementById('input-person').value;
+      const purposeSelect = document.getElementById('input-purpose');
+      if (sessionData.jobNo && sessionData.jobNo !== "なし") {
+        sessionData.purpose = sessionData.jobNo; sessionData.purposeName = purposeSelect.options[purposeSelect.selectedIndex].text; 
+      } else {
+        sessionData.purpose = purposeSelect.value; sessionData.purposeName = purposeSelect.options[purposeSelect.selectedIndex].text;
+      }
+      if (!sessionData.person) { alert("担当者情報を選択してください。"); return; }
+      goToStep(4);
+    }
+
+    function editHistory(id, barcode, qty) {
+      currentEditId = id; currentEditBarcode = barcode;
+      document.getElementById('modal-item-code').innerText = barcode; document.getElementById('modal-qty').value = qty;
+      document.getElementById('edit-modal').style.display = 'flex';
+    }
+    function closeEditModal() { document.getElementById('edit-modal').style.display = 'none'; currentEditId = null; }
+
+    function changeModalQty(amount) {
+      const input = document.getElementById('modal-qty');
+      let current = parseInt(input.value, 10) || 0; let next = current + amount;
+      let isInventory = (sessionData.purposeName === '棚卸');
+      let minQty = isInventory ? 0 : 1;
+      if (next < minQty) next = minQty; input.value = next;
+    }
+    function saveEditModal() {
+      const newQty = parseInt(document.getElementById('modal-qty').value, 10);
+      let isInventory = (sessionData.purposeName === '棚卸');
+      if (isNaN(newQty) || newQty < 0 || (!isInventory && newQty === 0)) { 
+        alert("正しい数量を入力してください。"); return; 
+      }
+      sendUpdateRequest(newQty, false); closeEditModal();
+    }
+    function deleteEditModal() {
+      if (!confirm("本当にこのデータをシートから削除してもよろしいですか？")) return;
+      sendUpdateRequest(0, true); closeEditModal();
+    }
+
+    function sendUpdateRequest(qty, isDelete) {
+      if (!navigator.onLine) {
+        showOfflineOverlay();
+        return;
+      }
+
+      const payloadId = currentEditId; const ctx = historyContexts[payloadId];
+      const payload = {
+        jobNo: ctx ? ctx.jobNo : sessionData.jobNo, person: sessionData.person, 
+        purpose: ctx ? ctx.purpose : sessionData.purpose, purposeName: ctx ? ctx.purposeName : sessionData.purposeName,
+        items: [{ barcode: currentEditBarcode, qty: qty, id: payloadId, isDelete: isDelete }]
+      };
+      if (isDelete) { updateHistoryStatus(payloadId, "saving", "順番待ち..."); } 
+      else { updateHistoryUI(payloadId, qty, "saving", "順番待ち..."); }
+      addToQueue(payload, isDelete);
+    }
+
+    function submitData(isFinish) {
+      if (!navigator.onLine) {
+        showOfflineOverlay();
+        return;
+      }
+
+      let qtyStr = document.getElementById('input-qty').value;
+      let qty = parseInt(qtyStr, 10);
+      
+      let isInventory = (sessionData.purposeName === '棚卸');
+      if (isNaN(qty) || qty < 0 || (!isInventory && qty === 0)) { 
+        alert("正しい数量を入力してください。"); return; 
+      }
+
+      const payloadId = 'hist-' + Date.now();
+      historyContexts[payloadId] = { jobNo: sessionData.jobNo, purpose: sessionData.purpose, purposeName: sessionData.purposeName };
+
+      const payload = {
+        jobNo: sessionData.jobNo, person: sessionData.person,
+        purpose: sessionData.purpose, purposeName: sessionData.purposeName,
+        items: [{ barcode: currentItemBarcode, qty: qty, id: payloadId }]
+      };
+
+      addHistoryUI(payloadId, currentItemBarcode, qty, "saving", "順番待ち...");
+      addToQueue(payload, false);
+
+      document.getElementById('input-qty').value = "1";
+      document.getElementById('captured-image').style.display = 'none';
+      
+      if (isFinish) goToStep(6); else goToStep(4); 
+    }
+
+    function addHistoryUI(id, code, qty, status, customText = "") {
+      const list = document.getElementById('scan-history');
+      const li = document.createElement('li');
+      li.id = id; li.className = 'history-item';
+      let statusHtml = status === 'saving' ? `<span class="history-status status-saving">${customText || "保存中..."}</span>` : `<span class="history-status status-ok">保存済</span>`;
+      li.innerHTML = `
+        <div class="history-info"><span>${code} <small class="qty-label">(x${qty})</small></span>${statusHtml}</div>
+        <button type="button" class="edit-btn" onclick="editHistory('${id}', '${code}', ${qty})">修正</button>
+      `;
+      list.prepend(li); 
+    }
+
+    function updateHistoryUI(id, newQty, status, customText = "") {
+      const li = document.getElementById(id);
+      if (li) {
+        const qtyLabel = li.querySelector('.qty-label'); if (qtyLabel) qtyLabel.innerText = `(x${newQty})`;
+        const btn = li.querySelector('.edit-btn'); if (btn) btn.setAttribute('onclick', `editHistory('${id}', '${currentEditBarcode}', ${newQty})`);
+        updateHistoryStatus(id, status, customText);
+      }
+    }
+
+    function updateHistoryStatus(id, status, customText = "") {
+      const li = document.getElementById(id);
+      if (li) {
+        const statusSpan = li.querySelector('.history-status');
+        if (status === "ok") { statusSpan.className = "history-status status-ok"; statusSpan.innerText = customText || "保存済"; } 
+        else if (status === "saving") { statusSpan.className = "history-status status-saving"; statusSpan.innerText = customText || "保存中..."; } 
+        else if (status === "error") { statusSpan.className = "history-status status-error"; statusSpan.innerText = customText || "エラー"; }
+      }
+    }
+
+    function resetApp() {
+      sessionData = { jobNo: "", person: loginUserName || "", purpose: "", purposeName: "" };
+      historyContexts = {}; 
+      
+      const personSelect = document.getElementById('input-person');
+      if (personSelect && loginUserName) personSelect.value = loginUserName; 
+      
+      document.getElementById('input-purpose').innerHTML = ""; 
+      document.getElementById('input-qty').value = "1";
+      document.getElementById('scan-history').innerHTML = ""; 
+      goToStep(1);
+    }
+
+    let cameraStream = null; let isDecoding = false; let detector = null; let zxingReader = null; let videoTrack = null; let isLightOn = false; let isScanning = false;
+
+    const AUTO_ZOOM_ENABLED = true;
+    const DEFAULT_CAMERA_ZOOM = 1.4; 
+
+    async function initDecoder() {
+      if (!isDecoding) {
+        isDecoding = true;
+        let useDetector = false;
+
+        if ('BarcodeDetector' in window) { 
+          try {
+            const supported = await BarcodeDetector.getSupportedFormats();
+            if (supported.includes('code_39')) {
+              detector = new BarcodeDetector({ 
+                formats: ['ean_13', 'ean_8', 'code_128', 'code_39', 'itf', 'codabar', 'qr_code'] 
+              }); 
+              useDetector = true;
+            }
+          } catch(e) {}
+        }
+        
+        if (!useDetector && window.ZXing) { 
+          zxingReader = new ZXing.BrowserMultiFormatReader(); 
+        }
+      }
+      if (scanMode && (detector || zxingReader)) startScanner();
+    }
+
+    async function startCamera(videoId) {
+      const videoElement = document.getElementById(videoId);
+      if (!videoElement) return;
+
+      videoElement.setAttribute('playsinline', 'true');
+      videoElement.muted = true;
+
+      if (cameraStream) {
+        videoElement.srcObject = cameraStream;
+        await videoElement.play().catch(console.warn);
+        if (AUTO_ZOOM_ENABLED) await applyCameraZoom(DEFAULT_CAMERA_ZOOM);
+        await focusCenter();
+        initDecoder();
+        return;
+      }
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: {
+            facingMode: { ideal: 'environment' },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            aspectRatio: { ideal: 16 / 9 },
+            frameRate: { ideal: 30 }
+          }
+        });
+
+        cameraStream = stream;
+        videoElement.srcObject = stream;
+        videoTrack = stream.getVideoTracks()[0];
+
+        await videoElement.play().catch(console.warn);
+
+        const caps = videoTrack.getCapabilities?.() || {};
+        const settings = videoTrack.getSettings?.() || {};
+
+        console.log('camera capabilities:', caps);
+        console.log('camera settings before:', settings);
+        console.log('video intrinsic size:', videoElement.videoWidth, videoElement.videoHeight);
+
+        // 自動ズームを復活。以前の2.0倍は強すぎる端末があるため、初期値は1.4倍。
+        // 画角を戻したい場合は画面上の 1.0x ボタンを押す。
+        if (AUTO_ZOOM_ENABLED) {
+          await applyCameraZoom(DEFAULT_CAMERA_ZOOM);
+        }
+
+        await focusCenter();
+
+        const container = videoElement.parentElement;
+        container.onclick = async (e) => {
+          if (!videoTrack) return;
+          showFocusRing(container, e);
+          await focusCenter();
+        };
+
+        if (caps.torch) {
+          document.querySelectorAll('.light-btn').forEach(btn => {
+            btn.style.display = 'block';
+          });
+        }
+
+        initDecoder();
+
+      } catch (err) {
+        console.error('camera error:', err);
+        alert('カメラ取得エラー: ' + err.message);
+      }
+    }
+
+    async function focusCenter() {
+      if (!videoTrack) return;
+
+      const caps = videoTrack.getCapabilities?.() || {};
+      const constraint = {};
+
+      if (caps.pointsOfInterest !== undefined) {
+        constraint.pointsOfInterest = [{ x: 0.5, y: 0.5 }];
+      }
+
+      if (Array.isArray(caps.focusMode)) {
+        if (caps.focusMode.includes('single-shot')) {
+          constraint.focusMode = 'single-shot';
+        } else if (caps.focusMode.includes('continuous')) {
+          constraint.focusMode = 'continuous';
+        }
+      }
+
+      if (Object.keys(constraint).length === 0) {
+        console.warn('focus control not supported:', caps);
+        return;
+      }
+
+      try {
+        await videoTrack.applyConstraints({ advanced: [constraint] });
+        console.log('focus applied:', constraint, videoTrack.getSettings?.());
+      } catch (err) {
+        console.warn('focus failed:', constraint, err);
+      }
+
+      if (Array.isArray(caps.focusMode) && caps.focusMode.includes('continuous')) {
+        setTimeout(() => {
+          videoTrack.applyConstraints({ advanced: [{ focusMode: 'continuous' }] })
+            .catch(err => console.warn('restore continuous focus failed:', err));
+        }, 800);
+      }
+    }
+
+    function showFocusRing(container, e) {
+      const rect = container.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      let ring = container.querySelector('.focus-ring');
+      if (!ring) {
+        ring = document.createElement('div');
+        ring.className = 'focus-ring';
+        container.appendChild(ring);
+      }
+
+      ring.classList.remove('active');
+      void ring.offsetWidth;
+      ring.style.left = x + 'px';
+      ring.style.top = y + 'px';
+      ring.classList.add('active');
+      setTimeout(() => ring.classList.remove('active'), 800);
+    }
+
+    function getVideoSourceRectFromTarget(video, target) {
+      const vw = video.videoWidth;
+      const vh = video.videoHeight;
+      if (!vw || !vh) return null;
+
+      const videoRect = video.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+
+      const videoAspect = vw / vh;
+      const elementAspect = videoRect.width / videoRect.height;
+
+      let renderedW;
+      let renderedH;
+      let offsetX = 0;
+      let offsetY = 0;
+
+      // CSS object-fit: cover と同じ計算。
+      if (elementAspect > videoAspect) {
+        renderedW = videoRect.width;
+        renderedH = videoRect.width / videoAspect;
+        offsetY = (videoRect.height - renderedH) / 2;
+      } else {
+        renderedH = videoRect.height;
+        renderedW = videoRect.height * videoAspect;
+        offsetX = (videoRect.width - renderedW) / 2;
+      }
+
+      const leftInRendered = targetRect.left - videoRect.left - offsetX;
+      const topInRendered = targetRect.top - videoRect.top - offsetY;
+      const rightInRendered = targetRect.right - videoRect.left - offsetX;
+      const bottomInRendered = targetRect.bottom - videoRect.top - offsetY;
+
+      let sx = Math.round((leftInRendered / renderedW) * vw);
+      let sy = Math.round((topInRendered / renderedH) * vh);
+      let ex = Math.round((rightInRendered / renderedW) * vw);
+      let ey = Math.round((bottomInRendered / renderedH) * vh);
+
+      sx = Math.max(0, Math.min(vw - 1, sx));
+      sy = Math.max(0, Math.min(vh - 1, sy));
+      ex = Math.max(sx + 1, Math.min(vw, ex));
+      ey = Math.max(sy + 1, Math.min(vh, ey));
+
+      return {
+        sx,
+        sy,
+        sw: ex - sx,
+        sh: ey - sy
+      };
+    }
+    
+    async function applyCameraZoom(preferredZoom = 1) {
+      if (!videoTrack) return false;
+
+      const caps = videoTrack.getCapabilities?.() || {};
+      if (!caps.zoom) {
+        console.warn('zoom not supported');
+        return false;
+      }
+
+      const zoom = Math.min(Math.max(preferredZoom, caps.zoom.min), caps.zoom.max);
+
+      try {
+        await videoTrack.applyConstraints({ advanced: [{ zoom }] });
+        console.log('zoom applied:', zoom, videoTrack.getSettings?.());
+        return true;
+      } catch (err) {
+        console.warn('manual zoom failed:', err);
+        return false;
+      }
+    }
+
+    function toggleLight() {
+      if (!videoTrack) return; isLightOn = !isLightOn;
+      videoTrack.applyConstraints({ advanced: [{ torch: isLightOn }] }).catch(err => { isLightOn = !isLightOn; });
+    }
+
+    function startScanner() {
+      if (isScanning || !scanMode) return;
+      isScanning = true;
+      const videoId = scanMode === 'JOB' ? 'video-job' : 'video-item';
+      const video = document.getElementById(videoId);
+      const target = video?.parentElement?.querySelector('.target');
+      
+      const scanCanvas = document.createElement('canvas');
+      const scanCtx = scanCanvas.getContext('2d', { willReadFrequently: true });
+      let detectorLoopCount = 0;
+
+      function handleDetectedCode(rawText) {
+        const code = String(rawText || '').replace(/^\*|\*$/g, '');
+        let minLength = (scanMode === 'JOB') ? 2 : 4;
+        if (code.length < minLength) return;
+
+        if (code === lastScannedCode) {
+          scanMatchCount++;
+          if (scanMatchCount >= REQUIRED_MATCHES) {
+            onBarcodeDetected(code);
+          }
+        } else {
+          lastScannedCode = code;
+          scanMatchCount = 1;
+        }
+      }
+
+      function expandSourceRect(src, vw, vh, scaleX, scaleY) {
+        if (!src) {
+          return { sx: 0, sy: 0, sw: vw, sh: vh };
+        }
+
+        const cx = src.sx + src.sw / 2;
+        const cy = src.sy + src.sh / 2;
+        const sw = Math.min(vw, Math.round(src.sw * scaleX));
+        const sh = Math.min(vh, Math.round(src.sh * scaleY));
+        const sx = Math.max(0, Math.min(vw - sw, Math.round(cx - sw / 2)));
+        const sy = Math.max(0, Math.min(vh - sh, Math.round(cy - sh / 2)));
+
+        return { sx, sy, sw, sh };
+      }
+
+      async function detectInRect(src) {
+        scanCanvas.width = src.sw;
+        scanCanvas.height = src.sh;
+
+        scanCtx.clearRect(0, 0, src.sw, src.sh);
+        scanCtx.drawImage(
+          video,
+          src.sx,
+          src.sy,
+          src.sw,
+          src.sh,
+          0,
+          0,
+          src.sw,
+          src.sh
+        );
+
+        return await detector.detect(scanCanvas);
+      }
+
+      if (detector) {
+        (async function loop() {
+          if (!isScanning || !scanMode) return;
+
+          if (!isCooldown) {
+            try {
+              const vw = video.videoWidth;
+              const vh = video.videoHeight;
+
+              if (vw > 0 && vh > 0) {
+                detectorLoopCount++;
+
+                // 赤枠ぴったりだとバーコード端や赤線の重なりで読めないため、
+                // 通常は赤枠より広め、一定回数ごとに全画面も読む。
+                const targetSrc = target ? getVideoSourceRectFromTarget(video, target) : null;
+                const primarySrc = expandSourceRect(targetSrc, vw, vh, 1.35, 1.75);
+                let barcodes = await detectInRect(primarySrc);
+
+                if (barcodes.length === 0 && detectorLoopCount % 3 === 0) {
+                  const fullSrc = { sx: 0, sy: 0, sw: vw, sh: vh };
+                  barcodes = await detectInRect(fullSrc);
+                }
+
+                if (barcodes.length > 0) {
+                  handleDetectedCode(barcodes[0].rawValue);
+                }
+              }
+            } catch (e) {
+              console.warn('BarcodeDetector scan failed:', e);
+            }
+          }
+
+          setTimeout(loop, 180);
+        })();
+      } else if (zxingReader) {
+        // decodeFromVideoElement はiOS Safari/一部WebViewで検出が不安定なため、
+        // 元実装と同じ decodeFromVideoDevice を優先して読み取り性能を戻す。
+        try {
+          zxingReader.decodeFromVideoDevice(null, video, (result, err) => {
+            if (result && isScanning && !isCooldown) {
+              handleDetectedCode(result.text);
+            }
+          });
+        } catch (err) {
+          console.warn('ZXing decodeFromVideoDevice failed, fallback to decodeFromVideoElement:', err);
+          try {
+            zxingReader.decodeFromVideoElement(video, (result, err) => {
+              if (result && isScanning && !isCooldown) {
+                handleDetectedCode(result.text);
+              }
+            });
+          } catch (fallbackErr) {
+            console.warn('ZXing fallback failed:', fallbackErr);
+          }
+        }
+      }
+    }
+
+    function stopScanner() { 
+      isScanning = false; 
+      if (zxingReader) zxingReader.reset(); 
+      lastScannedCode = "";
+      scanMatchCount = 0;
+    }
+
+    function captureVideoFrame(videoId) {
+      const video = document.getElementById(videoId);
+      if (!video || video.videoWidth === 0) return "";
+      const canvas = document.createElement('canvas'); canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d'); ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL('image/jpeg', 0.7); 
+    }
+
+    function onBarcodeDetected(code, isManual = false) {
+      playBeep();
+      
+      lastScannedCode = "";
+      scanMatchCount = 0;
+
+      let capturedSrc = "";
+      if (!isManual && scanMode === 'ITEM') capturedSrc = captureVideoFrame('video-item');
+      
+      if (scanMode === 'JOB') {
+        let finalJobNo = code;
+        
+        if (!isManual && finalJobNo.length > 4) {
+          finalJobNo = finalJobNo.substring(4);
+        }
+        
+        if (confirm("【 JOB NO 確認 】\n\n「 " + finalJobNo + " 」\n\nこのJOB NOでよろしいですか？\n※違う場合はキャンセルを押して読み直してください。")) {
+          sessionData.jobNo = finalJobNo; 
+          scanMode = null; 
+          goToStep(3);
+        } else {
+          isScanning = false;
+          startCooldown(2); 
+          startScanner();
+        }
+        
+      } else if (scanMode === 'ITEM') {
+        if (navigator.vibrate) navigator.vibrate(50);
+        
+        if (confirm("【 商品CD 確認 】\n\n「 " + code + " 」\n\nこの商品コードでよろしいですか？\n※違う場合はキャンセルを押して読み直してください。")) {
+          currentItemBarcode = code; 
+          document.getElementById('display-item-code').innerText = code;
+          const imgEl = document.getElementById('captured-image');
+          if (capturedSrc) { imgEl.src = capturedSrc; imgEl.style.display = 'block'; } else { imgEl.style.display = 'none'; }
+          scanMode = null; 
+          goToStep(5);
+        } else {
+          isScanning = false;
+          startCooldown(4); 
+          startScanner();
+        }
+      }
+    }
+
+    window.addEventListener('load', async () => {
+      try {
+        readAuthToken();
+        await bootstrapApp();
+        initQueue();
+      } catch (error) {
+        console.error(error);
+        showFatalAuthError(error.message);
+      }
+    });
+  </script>
+</body>
+</html>
