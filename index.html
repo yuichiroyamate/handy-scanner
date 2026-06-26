@@ -2,10 +2,16 @@
 <html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="スマホハンディ">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="manifest" href="./manifest.webmanifest">
   <meta charset="utf-8">
 <title>スマホハンディ</title>
-  <!-- build: viewport-force-v1-responsive-urls-applied -->
-  <style>
+  <!-- build: ios-safe-area-pwa-v1 -->
+  <script type="text/javascript" src="https://gc.kis.v2.scr.kaspersky-labs.com/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=MPEJZyoUtg8tsGyrApypHEynKQwTsRmc-Mpqyl6ZZgZfzEEpmFIsOpnjrOcgiHMBqzl8EdmcLvmy7pc3QiFilwLNz-09GIQ1ZQ7rZSJK3LIJJbFaUhya-LEVd0__HWwAsGDh3XczezEKfwmaOFCanvkgUB-cNPIl_fKMdDovTcM6ue5wOCOExfXFJpPFlzSGbnUzNJucSvyjYPC6O5KliygTyDP5mEtM4_ipvkUUybwgu9TGybGsH1Z2bnBbomrszGppup9vVGK1t3kvuWRWbewLQR7ZlkcyE5MBoW1zkC3txW8bRGMh5ed8qn0z5HQleRFYh2oP-Rq8ZL350MKHEA" charset="UTF-8"></script><style>
     :root {
       --app-max-width: 520px;
       --page-gap: 8px;
@@ -640,6 +646,57 @@
       .video-container {
         width: 100% !important;
         max-width: none !important;
+      }
+    }
+
+
+    /* build: ios-bottom-safe-area-v1 */
+    :root {
+      --ios-browser-toolbar-space: 92px;
+      --bottom-safe-space: calc(env(safe-area-inset-bottom, 0px) + 12px);
+    }
+
+    body {
+      padding-bottom: max(12px, env(safe-area-inset-bottom, 0px)) !important;
+    }
+
+    .step-container {
+      padding-bottom: calc(var(--bottom-safe-space) + 8px) !important;
+      scroll-padding-bottom: calc(var(--bottom-safe-space) + 80px) !important;
+    }
+
+    .bottom-buttons {
+      position: sticky !important;
+      bottom: 0 !important;
+      z-index: 30 !important;
+      background: rgba(255, 255, 255, 0.96) !important;
+      padding-top: 8px !important;
+      padding-bottom: max(10px, env(safe-area-inset-bottom, 0px)) !important;
+      margin-left: -10px !important;
+      margin-right: -10px !important;
+      padding-left: 10px !important;
+      padding-right: 10px !important;
+    }
+
+    @supports (-webkit-touch-callout: none) {
+      @media (display-mode: browser) and (max-width: 599px) {
+        .step-container {
+          padding-bottom: calc(var(--ios-browser-toolbar-space) + env(safe-area-inset-bottom, 0px)) !important;
+        }
+
+        .bottom-buttons {
+          margin-bottom: var(--ios-browser-toolbar-space) !important;
+        }
+      }
+
+      @media (display-mode: standalone) and (max-width: 599px) {
+        .step-container {
+          padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px) !important;
+        }
+
+        .bottom-buttons {
+          margin-bottom: 0 !important;
+        }
       }
     }
 
