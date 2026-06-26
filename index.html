@@ -524,26 +524,47 @@
       }
     }
 
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    let audioCtx = new AudioContext();
-
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+    
+    function getAudioContext() {
+      if (!AudioContextClass) {
+        return null;
+      }
+    
+      if (!audioCtx) {
+        audioCtx = new AudioContextClass();
+      }
+    
+      return audioCtx;
+    }
+    
     function playBeep() {
-      if (audioCtx.state === 'suspended') { audioCtx.resume(); }
-      const oscillator = audioCtx.createOscillator();
-      const gainNode = audioCtx.createGain();
-      
-      oscillator.type = 'sine'; 
-      oscillator.frequency.setValueAtTime(2000, audioCtx.currentTime); 
-      
-      gainNode.gain.setValueAtTime(0.8, audioCtx.currentTime); 
-      gainNode.gain.setValueAtTime(0.8, audioCtx.currentTime + 0.07); 
-      gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1); 
-      
+      const ctx = getAudioContext();
+    
+      if (!ctx) {
+        return;
+      }
+    
+      if (ctx.state === 'suspended') {
+        ctx.resume().catch(function() {});
+      }
+    
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+    
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(2000, ctx.currentTime);
+    
+      gainNode.gain.setValueAtTime(0.8, ctx.currentTime);
+      gainNode.gain.setValueAtTime(0.8, ctx.currentTime + 0.07);
+      gainNode.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.1);
+    
       oscillator.connect(gainNode);
-      gainNode.connect(audioCtx.destination);
-      
+      gainNode.connect(ctx.destination);
+    
       oscillator.start();
-      oscillator.stop(audioCtx.currentTime + 0.1); 
+      oscillator.stop(ctx.currentTime + 0.1);
     }
 
     function initQueue() {
